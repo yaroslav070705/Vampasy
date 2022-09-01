@@ -5,46 +5,41 @@ using Photon.Realtime;
 using UnityEngine.UI;
 
 public class RoomManager : MonoBehaviourPunCallbacks {
-    [SerializeField] GameObject gameManagerPrefab;
-    [SerializeField] GameObject gameInformationPrefab;
-    [SerializeField] GameObject player;
+    //[SerializeField] GameObject gameManagerPrefab;
+    //[SerializeField] GameObject gameInformationPrefab;
+    //[SerializeField] GameObject player;
     [SerializeField] GameObject startGameButton;
     GameManager gameManager;
     GameObject gameInf;
-    [SerializeField] Canvas canvas;
+    //[SerializeField] Canvas canvas;
    // [SerializeField] Button button;
 
+    int notCreatedPlayersNum = 0;
+
     private void Start() {
-        player = PhotonNetwork.Instantiate(player.name, Vector3.zero, new Quaternion(0, 0, 0, 0));
-      //  button.onClick.AddListener(() => player.GetComponent<PlayerManager>().EndTurn());
-        gameInf = PhotonNetwork.Instantiate(gameInformationPrefab.name, canvas.transform.position, canvas.transform.localRotation);
-        player.GetComponent<PlayerManager>().photonView.RPC("SetGameInformation", RpcTarget.AllBuffered ,gameInf.GetPhotonView().ViewID);
-// gameInf.GetComponent<GameInformation>().canvas = canvas;
-        gameInf.GetComponent<GameInformation>().photonView.RPC("StartSettings", RpcTarget.AllBuffered, canvas.gameObject.GetPhotonView().ViewID, PhotonNetwork.PlayerList.Length, PhotonNetwork.NickName);
-        // photonView.RPC("AddGameInfo", RpcTarget.AllBuffered);
-        if (PhotonNetwork.IsMasterClient) {
-            startGameButton.SetActive(true);
-            player.GetComponent<PlayerManager>().isMyTurn = true;
-        }
-       // gameManager = PhotonNetwork.Instantiate(gameManagerPrefab.name, Vector3.zero, new Quaternion(0, 0, 0, 0)).GetComponent<GameManager>();
-        //gameManager.playerManager = player.GetComponent<PlayerManager>();
-        //if (gameManager.playerManager == null) {
-        //    Debug.Log("no");
-        //}
-        //else {
-         //   Debug.Log("yes");
-        //}
+       // player = PhotonNetwork.Instantiate(player.name, Vector3.zero, new Quaternion(0, 0, 0, 0));
+        //gameInf = PhotonNetwork.Instantiate(gameInformationPrefab.name, canvas.transform.position, canvas.transform.localRotation);
+
+        //player.GetComponent<PlayerManager>().photonView.RPC("SetGameInformation", RpcTarget.AllBuffered ,gameInf.GetPhotonView().ViewID);
+        //gameInf.GetComponent<GameInformation>().photonView.RPC("StartSettings", RpcTarget.AllBuffered, canvas.gameObject.GetPhotonView().ViewID, PhotonNetwork.PlayerList.Length, PhotonNetwork.NickName);
+
+       // if (PhotonNetwork.IsMasterClient) {
+       //     startGameButton.SetActive(true);
+//            player.GetComponent<PlayerManager>().isMyTurn = true;
+    //    }
     }
 
     [PunRPC]
      public void StartGame() {
-         PhotonNetwork.CurrentRoom.IsOpen = false;
+        PhotonNetwork.CurrentRoom.IsOpen = false;
      }
 
     public void StartGameButtonFunc() {
         startGameButton.SetActive(false);
-        gameManager = PhotonNetwork.Instantiate(gameManagerPrefab.name, Vector3.zero, new Quaternion(0, 0, 0, 0)).GetComponent<GameManager>();
-        gameManager.playerManager = player.GetComponent<PlayerManager>();
+        notCreatedPlayersNum = PhotonNetwork.PlayerList.Length;
+       // gameManager = PhotonNetwork.Instantiate(gameManagerPrefab.name, Vector3.zero, new Quaternion(0, 0, 0, 0)).GetComponent<GameManager>();
+        photonView.RPC("SetGameManager", RpcTarget.AllBuffered, gameManager.gameObject.GetPhotonView().ViewID);
+      //  gameManager.playerManager = player.GetComponent<PlayerManager>();
         gameManager.gameInformation = gameInf.GetComponent<GameInformation>();
        // this.photonView.RPC("ChangeTurnName", RpcTarget.AllBuffered);
         this.photonView.RPC("StartGame", RpcTarget.AllBuffered);

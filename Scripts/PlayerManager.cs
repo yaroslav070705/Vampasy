@@ -7,16 +7,18 @@ using UnityEngine.UI;
 //using UnityEditor.Animations;
 
 public class PlayerManager : MonoBehaviourPunCallbacks {
-    GameObject cardPrafab;
+    GameObject garlicCardPrafab;
+    GameObject vampireCardPrefab;
     Ray arm;
     RaycastHit raycastHit;
     ISelectable selectableObject;
     ISelectable prefSelectableObject;
     float distance = 500f;
    // GameObject lid;
-    string lidColor;
+    public string lidColor;
+    string garlicColor;
     bool lidOpened = false;
-    Vector3 lidPos;
+    public Vector3 lidPos;
     RuntimeAnimatorController animatorController;
     int cardNum;
     public LidController lid;
@@ -24,7 +26,9 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
     CardController rightCard;
     CardController leftCard;
 
+    //public bool isMyTurn { get; set; } = false;
     public bool isMyTurn { get; set; } = false;
+    public bool needChooseVampire { get; set; } = false;
 
     [SerializeField] public PhotonView view;
     List<CardController> vampireCardsList;
@@ -33,16 +37,20 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
 
     private void Start() {
         //view = GetComponent<PhotonView>();
+        if (PhotonNetwork.IsMasterClient) {
+            isMyTurn = true;
+        }
         arm = new Ray();
         animatorController = Resources.Load("Animation/Card", typeof(RuntimeAnimatorController)) as RuntimeAnimatorController;
-        cardPrafab = Resources.Load("CardPrefab 1", typeof(GameObject)) as GameObject;
+        vampireCardPrefab = Resources.Load("VampireCardPrefab", typeof(GameObject)) as GameObject;
+        garlicCardPrafab = Resources.Load("GarlicCardPrefab", typeof(GameObject)) as GameObject;
     }
 
     void Update() {
 
         //arm.origin = Camera.main.transform.position;
         //arm.direction = new Vector3(Input.mousePosition.x, Input.mousePosition.y, 1000);
-        if (isMyTurn) {
+        if (isMyTurn && photonView.IsMine) {
             arm = Camera.main.ScreenPointToRay(Input.mousePosition);
             Debug.DrawRay(arm.origin, arm.direction * 500, Color.red);
             if (Physics.Raycast(arm, out raycastHit, distance)) {
@@ -77,40 +85,36 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
             }
 
             if (Input.GetKeyDown(KeyCode.S)) {
-                EndTurn();
+                if (lidOpened) {
+                    EndTurn();
+                }
             }
 
             if (Input.GetMouseButtonDown(0)) {
                 if (selectableObject is LidController lidController && !lidOpened) {
-                    selectableObject.Clicked();
+                    lid = lidController;
+                   // lid.LidOpened += OnLidOpened;
+                   // gameManager.OpenLid(lid);
+                    lidController.Clicked();
 
-                    if (lidController.isEmpty) {
-                        lid = lidController;
-                        lidOpened = true;
-                        lidColor = lidController.color;
-                        lidPos = lidController.pos;
-                        selectableObject = null;
-                        prefSelectableObject = null;
-                       /* if(leftCard.color == lidColor || rightCard.color == lidColor) { }
-                        else {
-                            lid.photonView.RPC("PlayAnimation", RpcTarget.AllBuffered, "Closed");
-                            lidOpened = false;
-                        }*/
-                    }
-
-                    else {
-                        GetStick();
-                    }
+                    //selectableObject = null;
+                  //  prefSelectableObject = null;
                 }
 
-                else if(selectableObject is CardController cardController) {
+                else if (selectableObject is CardController cardController) {
                     if (lidOpened) {
-                        bool isLeft = cardController.Equals(leftCard);
-                        bool isRight = cardController.Equals(rightCard);
-                        if (cardController.color == lidColor && ( isLeft || isRight)) {
-                            prefSelectableObject = null;
-                            Destroy(cardController.gameObject);
-                            PutCard(lidColor, isRight);
+                        if (selectableObject is VampireCard) {
+                            bool isLeft = cardController.Equals(leftCard);
+                            bool isRight = cardController.Equals(rightCard);
+                            if (cardController.color == lidColor && (isLeft || isRight)) {
+                                prefSelectableObject = null;
+                                Destroy(cardController.gameObject);
+                                PutVampireCard(lidColor, isRight);
+                            }
+                        }
+
+                        else {
+                            PutGarlicCard();
                         }
                     }
 
@@ -121,10 +125,18 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
                     }
                 }
             }
+
+            if (needChooseVampire) {
+                if (Input.GetMouseButtonDown(0)) {
+                    if (selectableObject is VampireCard vampireCard) {
+                        GiveCard(vampireCard.color);
+                    }
+                }
+            }
         }
     }
 
-    private void PutCard(string color, bool isRight) {
+    private void PutVampireCard(string color, bool isRight) {
         if (isRight) {
             vampireCardsList.RemoveAt(cardNum-1);
         }
@@ -132,13 +144,80 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
             vampireCardsList.RemoveAt(0);
         }
         cardNum--;
-        GameObject card = null;
-        card = PhotonNetwork.Instantiate(cardPrafab.name, lidPos, new Quaternion(0, 0, 0, 0));
-        card.GetComponentInChildren<CardController>().photonView.RPC("OnInstantinated", RpcTarget.AllBuffered, color);
-        card.GetComponentInChildren<CardController>().photonView.RPC("SetAnimatorController", RpcTarget.AllBuffered);
-        lid.isEmpty = false;
+        CardController card = null;
+        card = PhotonNetwork.Instantiate(vampireCardPrefab.name, lidPos, new Quaternion(0, 0, 0, 0)).GetComponentInChildren<CardController>();
+        card.photonView.RPC("OffCollider", RpcTarget.All);
+        card.photonView.RPC("OnInstantinated", RpcTarget.AllBuffered, color, (float)(1 / 0.6));
+        card.photonView.RPC("SetAnimatorController", RpcTarget.AllBuffered);
+        lid.photonView.RPC("PutCard", RpcTarget.All, card.gameObject.GetPhotonView().ViewID);
         EndTurn();
     }
+
+    private void PutGarlicCard() {
+        CardController card = null;
+        card = PhotonNetwork.Instantiate(garlicCardPrafab.name, lidPos, new Quaternion(0, 0, 0, 0)).GetComponentInChildren<CardController>();
+        card.photonView.RPC("OffCollider", RpcTarget.All);
+        card.photonView.RPC("OnInstantinated", RpcTarget.AllBuffered, garlicColor, 1.2f);
+        card.photonView.RPC("SetAnimatorController", RpcTarget.AllBuffered);
+        lid.photonView.RPC("PutCard", RpcTarget.All, card.gameObject.GetPhotonView().ViewID);
+        EndTurn();
+    }
+
+    private void GiveCard(string color) {
+        gameManager.GiveCard(color);
+    }
+
+    private void TakeCard(GameObject card) {
+        Instantiate(card);
+
+    }
+
+   /* private void OnLidOpened() {
+        lid.LidOpened -= OnLidOpened;
+
+        if (lid.isEmpty) {
+            EmptyLidOpened();
+        }   
+
+        else {
+            NotEmptyLidOpened();
+        }
+    }*/
+
+    private void SetLidInformation() {
+        lidOpened = true;
+        lidColor = lid.color;
+        lidPos = lid.pos;
+    }
+
+    /*private void EmptyLidOpened() {
+        lidOpened = true;
+        lidColor = lid.color;
+        lidPos = lid.pos;
+        selectableObject = null;
+        prefSelectableObject = null;
+    }*/
+
+    /*private void NotEmptyLidOpened() {
+        CardController card = lid.card;
+
+        if(card is VampireCard vampireCard) {
+            GetStick();
+        }
+
+        else if(card is GarlicCard garlicCard){
+            if(garlicCard.color == garlicColor) {
+
+            }
+
+            else {
+
+            }
+
+            lid.photonView.RPC("TakeCard", RpcTarget.All);
+            gameManager.DestroyCard(card.gameObject);
+        }
+    }*/
 
     private void GetStick() {
         if(sticksNum < 2) {
@@ -150,15 +229,40 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
         }
     }
 
-    [PunRPC]
     private void ChangeTurn() {
-        if (PhotonNetwork.IsMasterClient) {
-            gameManager.ChangeTurn();
+        gameManager.ChangeTurn();
+    }
+
+    [PunRPC]
+    public void SetCards(string[] cardsColors, string garlicColor) {
+        this.garlicColor = garlicColor;
+        vampireCardsList = new List<CardController>(cardsColors.Length);
+        cardNum = cardsColors.Length;
+        float x = -(cardsColors.Length+3) / 4 + 0.5f;
+        float y = -0.8f;
+        float z = -4.3f;
+        Material material = null;
+        string cardColor = null;
+        GameObject card;
+        CardController cardController;
+
+        foreach (string color in cardsColors) {
+            cardColor = color;
+            card = Instantiate(vampireCardPrefab, new Vector3(x, y, z), new Quaternion(0, 0, 0, 0));
+            cardController = card.GetComponentInChildren<CardController>();
+            cardController.OnInstantinated(cardColor,1f);
+            vampireCardsList.Add(cardController);
+            x += 0.5f;
         }
 
-        else {
-            photonView.RPC("ChangeTurn", RpcTarget.MasterClient);
+        for(int i = 0; i<3; i++) {
+            GameObject garlic = Instantiate(garlicCardPrafab, new Vector3(x, y, z), new Quaternion(0, 0, 0, 0));
+            garlic.GetComponentInChildren<CardController>().OnInstantinated(garlicColor, 0.6f);
+            x += 0.5f;
         }
+
+        leftCard = vampireCardsList[0];
+        rightCard = vampireCardsList[cardNum - 1];
     }
 
     public void EndTurn() {
@@ -180,38 +284,22 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
     }
 
     [PunRPC]
-    public void SetCards(string[] cardsColors) {
-        vampireCardsList = new List<CardController>(cardsColors.Length);
-        cardNum = cardsColors.Length;
-        float x = -cardsColors.Length / 4 + 0.5f;
-        float y = -0.8f;
-        float z = -4.3f;
-        Material material = null;
-        string cardColor = "black";
-        GameObject card;
-        CardController cardController;
-        foreach (string color in cardsColors) {
-            cardColor = color;
-            card = Instantiate(cardPrafab, new Vector3(x, y, z), new Quaternion(0, 0, 0, 0));
-            cardController = card.GetComponentInChildren<CardController>();
-            cardController.OnInstantinated(cardColor);
-            vampireCardsList.Add(cardController);
-            x += 0.5f;
-            Debug.Log("SetCards");
-        }
-
-        leftCard = vampireCardsList[0];
-        rightCard = vampireCardsList[cardNum - 1];
-    }
-
-    [PunRPC]
     public void SetTurn() {
-        gameInf.photonView.RPC("SetTurn", RpcTarget.AllBuffered);
+        //gameManager.gameInf.photonView.RPC("SetTurn", RpcTarget.AllBuffered);
+        if(gameInf == null) {
+            Debug.Log("null gameInf");
+        }
+        gameInf.GetComponent<GameInformation>().photonView.RPC("SetTurn", RpcTarget.All);
         isMyTurn = true;
     }
 
     [PunRPC]
     public void SetGameInformation(int viewID) {
         gameInf = PhotonView.Find(viewID).gameObject.GetComponent<GameInformation>();
+    }
+
+    [PunRPC]
+    public void SetGameManager(int viewID) {
+        gameManager = PhotonView.Find(viewID).gameObject.GetComponent<GameManager>();
     }
 }

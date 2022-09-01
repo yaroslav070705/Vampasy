@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Photon.Pun;
 using Photon.Realtime;
+using System.Threading;
 
 public class LidController : MonoBehaviourPunCallbacks, ISelectable
 {
@@ -11,20 +12,44 @@ public class LidController : MonoBehaviourPunCallbacks, ISelectable
     MeshRenderer meshRenderer;
 
     Color materialColor;
+
+    public delegate void LidStateHandler();
+    public event LidStateHandler LidOpened;
     public string color { get; set; }
     public Vector3 pos { get; set; }
     public bool isEmpty { get; set; } = true;
+    public GameManager gameManager { get; set; }
+
+    public CardController card;
 
     private void Start() {
         pos = transform.parent.transform.position + transform.localPosition;   
     }
 
+    private void OnLidOpened() {
+        //  LidOpened?.Invoke();
+        gameManager.OnLidOpened(this);
+    }
+
     [PunRPC]
-    public void OnInstantinated(string color) {
+    public void OnInstantinated(string color, int viewID) {
+        gameManager = PhotonView.Find(viewID).GetComponent<GameManager>();
         meshRenderer = gameObject.GetComponent<MeshRenderer>();
         meshRenderer.material = Resources.Load($"Materials/{color}Lid", typeof(Material)) as Material;
         materialColor = meshRenderer.material.color;
         this.color = color;
+    }
+
+    [PunRPC]
+    public void PutCard(int viewID) {
+        card = PhotonView.Find(viewID).GetComponent<CardController>();
+        isEmpty = false;
+    }
+
+    [PunRPC]
+    public void TakeCard() {
+        card = null;
+        isEmpty = true;
     }
 
     public void Selected() {
