@@ -3,26 +3,18 @@ using System.Collections.Generic;
 using UnityEngine;
 using Photon.Pun;
 
-public abstract class CardController : MonoBehaviourPunCallbacks, ISelectable {
-    protected MeshRenderer meshRenderer;
-    protected Color materialColor;
-    [SerializeField] protected Animator animator;
-    public string color { get; set; }
-    public bool isFlipped { get; set; } = false;
-    public GameManager gameManager { get; set; }
+public abstract class CardController {
 
-    private void Awake() {
+    /*private void Start() {
         meshRenderer = gameObject.GetComponent<MeshRenderer>();
     }
 
+    public virtual void Interact(int playerId) { }
+
     [PunRPC]
-    public abstract void OnInstantinated(string color, float scale);
+    public abstract void OnInstantinated(string color);
 
-    public void Flip() {
-        PlayAnimation("Flip");
-    }
-
-    public void Selected () {
+    public void Selected() {
         //animator.SetTrigger("Selected");
         meshRenderer.material.color = Color.gray;
     }
@@ -32,23 +24,9 @@ public abstract class CardController : MonoBehaviourPunCallbacks, ISelectable {
         meshRenderer.material.color = materialColor;
     }
 
-    public void Clicked() {
-        animator.SetTrigger("Clicked");
-    }
-
-    [PunRPC]
-    public void OffCollider() {
-        gameObject.GetComponent<Collider>().enabled = false;
-    }
-
     [PunRPC]
     public void PlayAnimation(string trigger) {
         animator.SetTrigger(trigger);
-    }
-
-    [PunRPC]
-    public void SetAnimatorController() {
-        animator.runtimeAnimatorController = Resources.Load("Animation/Card", typeof(RuntimeAnimatorController)) as RuntimeAnimatorController;
-    }
+    }*/
 }
 

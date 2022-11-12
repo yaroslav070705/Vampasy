@@ -2,7 +2,5 @@ public interface ISelectable {
 
     void Selected();
     void Deselected();
-    void Clicked();
-
+    void Interact(int playerId);
 }
-

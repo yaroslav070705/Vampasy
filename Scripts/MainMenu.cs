@@ -20,6 +20,12 @@ public class MainMenu : MonoBehaviourPunCallbacks
         }
     }
 
+    private void Update() {
+        if (Input.GetKeyUp(KeyCode.Escape)) {
+            Screen.fullScreen = false;
+        }
+    }
+
     public void Log(string message)
     {
         Debug.Log(message);
