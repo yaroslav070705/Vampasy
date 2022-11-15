@@ -10,7 +10,7 @@ public abstract class GameUnit : MonoBehaviourPunCallbacks , ISelectable
     protected Animator animator;
     public string color { get; protected set; }
     public GameManager gameManager { get; set; }
-    public delegate void AnimationState();
+    public delegate void AnimationState(string trigger);
     public event AnimationState animationEnded;
 
     private void Awake() {
@@ -37,8 +37,8 @@ public abstract class GameUnit : MonoBehaviourPunCallbacks , ISelectable
         animator.SetTrigger(trigger);
     }
 
-    public void AnimationEnded() {
-        animationEnded();
+    public virtual void AnimationEnded() {
+        animationEnded("Closed");
     }
 
 }
