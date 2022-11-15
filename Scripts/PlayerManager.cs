@@ -60,7 +60,7 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
                 }
             }
             if (Input.GetKeyDown(KeyCode.S)) {
-                gameManager.EndTurn();
+                gameManager.EndTurn(this);
             }
         }
     }

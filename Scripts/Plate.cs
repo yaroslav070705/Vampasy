@@ -28,7 +28,7 @@ public class Plate : GameUnit
         isEmpty = false;
     }*/
 
-    public void AnimationEnded() {
-       // card.animationEnded -= PlayAnimation;
+    public override void AnimationEnded() {
+        //card.animationEnded -= PlayAnimation;
     }
 }
