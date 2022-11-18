@@ -3,6 +3,7 @@ using Photon.Pun;
 using System.Collections.Generic;
 using System;
 using Photon.Realtime;
+using System.Net.NetworkInformation;
 //using UnityEditor.Animations;
 
 public class PlayerManager : MonoBehaviourPunCallbacks {
@@ -61,6 +62,9 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
             }
             if (Input.GetKeyDown(KeyCode.S)) {
                 gameManager.EndTurn(this);
+            }
+            if (Input.GetKeyDown(KeyCode.E)) {
+                gameManager.RotateField(photonView.ViewID);
             }
         }
     }

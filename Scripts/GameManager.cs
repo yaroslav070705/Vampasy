@@ -5,8 +5,6 @@ using Photon.Realtime;
 using UnityEngine.UI;
 using System.Collections.Generic;
 using System.Linq;
-using System.Drawing;
-using Unity.VisualScripting;
 
 public class GameManager : MonoBehaviourPunCallbacks {
     [SerializeField] GameObject garlicPutCardPrefab;
@@ -18,6 +16,10 @@ public class GameManager : MonoBehaviourPunCallbacks {
     [SerializeField] GameObject startGameButton;
     [SerializeField] GameObject playerPrefab;
     [SerializeField] GameObject cardPlaceHolderPrefab;
+    [SerializeField] GameInformationManager gameInformationManager;
+    [SerializeField] GameObject playerInformationManagerPrefab;
+    [SerializeField] Canvas canvas;
+    [SerializeField] GameFieldManager gameField;
 
     Player[] networkPlayersList;
     List<PlayerManager> gamePlayersList;
@@ -37,12 +39,16 @@ public class GameManager : MonoBehaviourPunCallbacks {
     public event State interactionResult;
 
     private void Start() {
+        if (PhotonNetwork.IsMasterClient) {
+            startGameButton.SetActive(true);
+        }
         PlayerManager player;
+        PlayerInformationManager playerInformation = PhotonNetwork.Instantiate(playerInformationManagerPrefab.name,new Vector3(0,0,0), new Quaternion(0,0,0,0)).GetComponent<PlayerInformationManager>();
         gamePlayersList = new List<PlayerManager>();
         playerPrefab = PhotonNetwork.Instantiate(playerPrefab.name, Vector3.zero, new Quaternion(0, 0, 0, 0));
         player = playerPrefab.GetComponent<PlayerManager>();
         player.gameManager = this;
-        photonView.RPC("AddPlayer", RpcTarget.MasterClient, player.photonView.ViewID);
+        photonView.RPC("AddPlayer", RpcTarget.MasterClient, player.photonView.ViewID, playerInformation.photonView.ViewID);
 
         cardPlaceHolders = new CardPlaceHolder[2];
         cardPlaceHolders[0] = Instantiate(cardPlaceHolderPrefab, Vector3.zero, new Quaternion(0,0,0,0)).GetComponent<CardPlaceHolder>();
@@ -231,11 +237,11 @@ public class GameManager : MonoBehaviourPunCallbacks {
                     if (isRight || isLeft) {
                         if (vampireCard.color == openedPlate.color) {
                             if (isLeft) {
-                                playerInTurn.vampireCardsList.RemoveFirst();
+                              //  playerInTurn.vampireCardsList.RemoveFirst();
                                 UpdateCards("left", cardWidth);
                             }
                             else {
-                                playerInTurn.vampireCardsList.RemoveLast();
+                              //  playerInTurn.vampireCardsList.RemoveLast();
                                 UpdateCards("right", cardWidth);
                             }
                             PutCard(vampireCard);
@@ -335,14 +341,14 @@ public class GameManager : MonoBehaviourPunCallbacks {
         if (playerId == playerInTurn.photonView.ViewID) {
             if (playerInTurn.selectedVampireCard) {
                 if(placeHolder.side == "right") {
-                    playerInTurn.vampireCardsList.AddLast(playerInTurn.selectedVampireCard);
-                    UpdateCards("right", -cardWidth);
+                   // playerInTurn.vampireCardsList.AddLast(playerInTurn.selectedVampireCard);
+                    UpdateCards("right", -cardWidth,playerInTurn.selectedVampireCard);
                     //playerInTurn.leftVampireCard = playerInTurn.vampireCardsList.First.Value;
                    // placeHolder.transform.position = new Vector3(placeHolder.transform.position.x+0.5f, placeHolder.transform.position.y, placeHolder.transform.position.z);
                 }
                 else {
-                    playerInTurn.vampireCardsList.AddFirst(playerInTurn.selectedVampireCard);
-                    UpdateCards("left", -cardWidth);
+                  //  playerInTurn.vampireCardsList.AddFirst(playerInTurn.selectedVampireCard);
+                    UpdateCards("left", -cardWidth,playerInTurn.selectedVampireCard);
                    // playerInTurn.leftVampireCard = playerInTurn.vampireCardsList.Last.Value;
                   //  placeHolder.transform.position = new Vector3(placeHolder.transform.position.x - 0.5f, placeHolder.transform.position.y, placeHolder.transform.position.z);
                 }
@@ -440,12 +446,24 @@ public class GameManager : MonoBehaviourPunCallbacks {
         }
     }
 
-    private void UpdateCards(string side, float delta) {
+    private void UpdateCards(string side, float delta, VampireCard card = null) {
         if (side == "left") {
+            if(card != null) {
+                playerInTurn.vampireCardsList.AddFirst(card);
+            }
+            else {
+                playerInTurn.vampireCardsList.RemoveFirst();
+            }
             playerInTurn.leftVampireCard = playerInTurn.vampireCardsList.First.Value;
             cardPlaceHolders[0].transform.position = new Vector3(cardPlaceHolders[0].transform.position.x + delta, cardPlaceHolders[0].transform.position.y, cardPlaceHolders[0].transform.position.z);
         }
         else {
+            if (card != null) {
+                playerInTurn.vampireCardsList.AddLast(card);
+            }
+            else {
+                playerInTurn.vampireCardsList.RemoveLast();
+            }
             playerInTurn.rightVampireCard = playerInTurn.vampireCardsList.Last.Value;
             cardPlaceHolders[1].transform.position = new Vector3(cardPlaceHolders[1].transform.position.x - delta, cardPlaceHolders[1].transform.position.y, cardPlaceHolders[1].transform.position.z);
         }
@@ -453,7 +471,7 @@ public class GameManager : MonoBehaviourPunCallbacks {
 
     public void EndTurn(PlayerManager player) {
         if(player == playerInTurn) {
-            if(playerInTurn.haveToTakeCardsNum == 0) {
+            if(playerInTurn.haveToTakeCardsNum == 0 && openedPlate!=null) {
                 openedPlate.photonView.RPC("PlayAnimation",RpcTarget.All,"Closed");
                 // photonView.RPC("EndTurn",RpcTarget.All);
                 EndTurn();
@@ -491,18 +509,27 @@ public class GameManager : MonoBehaviourPunCallbacks {
     private void SetOpenedPlate(int plateId) {
         openedPlate = PhotonView.Find(plateId).GetComponent<Plate>();
     }*/
+    public void RotateField(int playerId) {
+        if(playerId == playerInTurn.photonView.ViewID) {
+            gameField.photonView.RPC("Rotate",RpcTarget.All);
+        }
+    }
     [PunRPC]
     private void SetNetworkPlayersList() {
         networkPlayersList = PhotonNetwork.PlayerList;
     }
     private void SetGamePLayersList() {
-        foreach (PlayerManager player in gamePlayersList) {
+        /*foreach (PlayerManager player in gamePlayersList) {
             photonView.RPC("AddPlayer", RpcTarget.Others, player.photonView.ViewID);
+        }*/
+        for(int i = 0; i < gamePlayersList.Count; i++) {
+            photonView.RPC("AddPlayer", RpcTarget.Others, gamePlayersList[i].photonView.ViewID, gameInformationManager.playerInformationManagers[i].photonView.ViewID);
         }
     }
     [PunRPC]
-    private void AddPlayer(int playerId) {
+    private void AddPlayer(int playerId, int playerInformationId) {
         gamePlayersList.Add(PhotonView.Find(playerId).GetComponent<PlayerManager>());
+        gameInformationManager.playerInformationManagers.Add(PhotonView.Find(playerInformationId).GetComponent<PlayerInformationManager>());
     }
 
 }
