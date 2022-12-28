@@ -6,10 +6,11 @@ using UnityEngine.UI;
 
 public class GameInformationManager : MonoBehaviourPunCallbacks
 {
-    public List<PlayerInformationManager> playerInformationManagers;
+    public List<PlayerInformationManager> playerInformationManagers { get; set; }
     public string playerInTurnNickName { get; set; }
 
-    private void Start() {
+    private void Awake() {
+        Debug.Log("init");
         playerInformationManagers = new List<PlayerInformationManager>(6);
     }
 
