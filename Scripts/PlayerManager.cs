@@ -20,6 +20,8 @@ public class PlayerManager : MonoBehaviourPunCallbacks {
     public int haveToGiveCardsNum { get; set; }
     public int haveToTakeCardsNum { get; set; }
     public string garlicColor { get; set; }
+    public string nickName { get; set; }
+    public bool haveToTakeCards { get; set; } = false;
 
     private ISelectable selectable = null;
     private ISelectable prefSelected = null;

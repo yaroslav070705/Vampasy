@@ -12,16 +12,21 @@ public class Plate : GameUnit
 
     [PunRPC]
     public override void OnInstantinated(string color, int viewId = 0) {
-        position = gameObject.transform.position;
         meshRenderer.material = Resources.Load($"Materials/{color}Plate", typeof(Material)) as Material;
         gameManager = PhotonView.Find(viewId).GetComponent<GameManager>();
+        transform.parent.SetParent(gameManager.GameField.gameObject.transform);
+        position = gameObject.transform.position;
         materialColor = meshRenderer.material.color;
+        gameManager.GameField.rotationEnded += UpdatePosition;
         this.color = color;
     }
     public override void Interact(int playerId) {
         gameManager.Interact(this, playerId);
     }
 
+    public void UpdatePosition() {
+        position = gameObject.transform.position;
+    }
    /* [PunRPC]
     public void PutCard(int cardId) {
         card = PhotonView.Find(cardId).GetComponent<GameUnit>();

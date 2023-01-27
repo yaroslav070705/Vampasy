@@ -6,22 +6,18 @@ using UnityEngine.UI;
 
 public class GameInformationManager : MonoBehaviourPunCallbacks
 {
-    public List<PlayerInformationManager> playerInformationManagers;
+    public List<PlayerInformationManager> playerInformationManagers { get; set; }
     public string playerInTurnNickName { get; set; }
 
-    private void Start() {
+    private void Awake() {
+        Debug.Log("init");
         playerInformationManagers = new List<PlayerInformationManager>(6);
     }
 
+
     [PunRPC]
-    public void GameStarted() {
-        foreach (PlayerInformationManager playerInformationManager in playerInformationManagers) {
-            playerInformationManager.UpdateInformation();
-        }
-    }
-    [PunRPC]
-    public void UpdatePlayerInformation(int playerIndex) {
-        playerInformationManagers[playerIndex].UpdateInformation();
+    public void UpdatePlayerInformation(int pInfIndex) {
+        playerInformationManagers[pInfIndex].UpdateInformation();
     }
 
 }

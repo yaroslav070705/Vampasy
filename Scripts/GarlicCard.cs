@@ -3,6 +3,7 @@ using Photon.Pun;
 
 public class GarlicCard : GameUnit
 {
+    public int ownerId { get; set; }
     public override void Interact(int playerId) {
         gameManager.Interact(this, playerId);
     }
